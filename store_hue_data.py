@@ -134,8 +134,8 @@ def insert(db, statement, records):
 
     print(mycursor.rowcount, "record inserted.")
 
-
-records = get_hue_data()
+args = get_args()
+records = get_hue_data(args.api, hue_hostname)
 # sql = "INSERT INTO temperature (temperature, location, time) VALUES (%s, %s, %s)"
 sql = "INSERT INTO things (time, location, name, aid, service, characteristic, value)" \
             "VALUES (%s, %s, %s, %s, %s, %s, %s)"
