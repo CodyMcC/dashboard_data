@@ -93,7 +93,7 @@ def get_hue_data(api_key, hue_hostname):
 
             records_to_insert.append((timestamp,
                                       location.split(" ")[0].capitalize(),  # Homekit room
-                                      "Temperature".capitalize(),  # Name
+                                      location.split(" ")[0].capitalize(),  # Name
                                       "0",
                                       "TemperatureSensor",
                                       "CurrentTemperature",
