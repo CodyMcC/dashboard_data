@@ -109,7 +109,7 @@ def main():
     client.on_message = on_message
 
     print("Pre connect")
-    client.connect("http://192.168.10.172", 1883, 60)
+    client.connect("192.168.10.172", 1883, 60)
     print("post connect")
 
     # Blocking call that processes network traffic, dispatches callbacks and
