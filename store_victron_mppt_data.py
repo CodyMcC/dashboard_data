@@ -47,7 +47,7 @@ def on_connect(client, userdata, flags, rc):
     print("Finished subscribing")
 
     print("Sending keep alive")
-    os.system("mosquitto_pub -m '' -t 'R/6064054fad59/system/0/Serial' -h venus")
+    os.system("mosquitto_pub -m '' -t 'R/6064054fad59/system/0/Serial' -h 192.168.10.172")
     print("Sent keep alive")
 
     # Subscribing in on_connect() means that if we lose the connection and
