@@ -12,7 +12,7 @@ import logging
 
 logging.basicConfig(level=logging.ERROR)
 
-start_time = time.time()
+# start_time = time.time()
 s = Schedule()
 
 # Get configs
