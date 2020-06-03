@@ -8,14 +8,15 @@ import json
 import argparse
 from pathlib import Path
 from sshtunnel import SSHTunnelForwarder
+from helper.remote_insert import open_tunnel, db_connection, insert
 import os
 
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.DEBUG)
 
-ssh_key = Path("~/.ssh/linux-cloud").expanduser()
-remote_user = "admin"
-database_user = "root"
-hue_hostname = "192.168.10.189"
+# ssh_key = Path("~/.ssh/linux-cloud").expanduser()
+# remote_user = "admin"
+# database_user = "root"
+# hue_hostname = "192.168.10.189"
 
 
 def get_args():
@@ -25,17 +26,8 @@ def get_args():
     parser.add_argument("-r", "--remote", required=True, help="Remote server to store the data")
     parser.add_argument("-p", "--db_password", required=True, help="The remote database password")
 
+    return parser.parse_args()
 
-def open_tunnel(remote, ssh_keyremote_user):
-
-    server = SSHTunnelForwarder(
-        remote,
-        ssh_username=remote_user,
-        ssh_pkey=ssh_key,
-        remote_bind_address=('127.0.0.1', 3306)
-    )
-
-    return server
 
 def get_hue_data(api_key, hue_hostname):
     results = requests.get(f"http://{hue_hostname}/api/{api_key}/sensors")
@@ -110,38 +102,35 @@ def get_hue_data(api_key, hue_hostname):
     return records_to_insert
 
 
-# db1 = {'host': 'localhost', 'db': 'arcticwolf', 'user': 'root', 'password': 'GameraRodan'}
-db1 = {'host': '******', 'db': 'arcticwolf', 'user': 'remote', 'password': '*******'}
+def main():
+    # args = get_args()
+
+    # Get configs
+    with open(Path("~/.dashboard_data").expanduser(), 'r') as fh:
+        config = json.load(fh)
+
+    records = get_hue_data(config['hue_api'], "192.168.10.189")  # config['hue_hostname']
+    print("Got the recorsd")
+    print(records)
+    # sql = "INSERT INTO temperature (temperature, location, time) VALUES (%s, %s, %s)"
+    sql = "INSERT INTO things (time, location, name, aid, service, characteristic, value)" \
+          "VALUES (%s, %s, %s, %s, %s, %s, %s)"
+
+    tunnel = open_tunnel(config['remote'], config['ssh_key'], config['remote_username'])
+    tunnel.start()
+
+    db_conn = db_connection(config['database_user'],
+                            config['database_password'],
+                            config['database'],
+                            port=tunnel.local_bind_port)
+
+    insert(db_conn, sql, records)
+
+    db_conn.close()
+    tunnel.close()
 
 
-def insert(db, statement, records):
-    mydb = mysql.connector.connect(
-        host=db['host'],
-        user=db['user'],
-        passwd=db['password'],
-        database=db['db']
-    )
-
-    mycursor = mydb.cursor()
-
-    sql = "INSERT INTO things (temperature, location, time) VALUES (%s, %s, %s)"
-
-    # val = [(temp, location, timestamp)]
-    # mycursor.execute(sql, val)  # Only used for single entry
-    mycursor.executemany(statement, records)
-
-    mydb.commit()
-
-    print(mycursor.rowcount, "record inserted.")
-
-args = get_args()
-records = get_hue_data(args.api, hue_hostname)
-# sql = "INSERT INTO temperature (temperature, location, time) VALUES (%s, %s, %s)"
-sql = "INSERT INTO things (time, location, name, aid, service, characteristic, value)" \
-            "VALUES (%s, %s, %s, %s, %s, %s, %s)"
-insert(db1, sql, records)
-
-
-
+if __name__ == "__main__":
+    main()
 
 
