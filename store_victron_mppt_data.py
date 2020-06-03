@@ -109,6 +109,7 @@ def main():
     client.on_message = on_message
 
     client.connect("venus.local", 1883, 60)
+    print("post connect")
 
     # Blocking call that processes network traffic, dispatches callbacks and
     # handles reconnecting.
