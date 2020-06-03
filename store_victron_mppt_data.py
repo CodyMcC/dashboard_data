@@ -108,6 +108,7 @@ def main():
     client.on_connect = on_connect
     client.on_message = on_message
 
+    print("Pre connect")
     client.connect("venus.local", 1883, 60)
     print("post connect")
 
