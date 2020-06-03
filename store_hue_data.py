@@ -134,3 +134,14 @@ if __name__ == "__main__":
     main()
 
 
+"""
+"CREATE TABLE things (time TIMESTAMP, 
+                      location VARCHAR(255), 
+                      name VARCHAR(255),
+                      aid INT,
+                      service varchar(255), 
+                      characteristic varchar(255), 
+                      value decimal(5,2));"
+"""
+
+

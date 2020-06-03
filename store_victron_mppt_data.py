@@ -26,6 +26,7 @@ with open(Path("~/.dashboard_data").expanduser(), 'r') as fh:
 
 
 things = {
+    "generator": {"topic": "N/6064054fad59/system/0/Ac/Genset/L1/Power", "value": None},
     "solar_w": {"topic": "N/6064054fad59/solarcharger/258/Yield/Power", "value": None},
     "solar_a": {"topic": "N/6064054fad59/solarcharger/258/Dc/0/Current", "value": None},
     "solar_v": {"topic": "N/6064054fad59/solarcharger/258/Dc/0/Voltage", "value": None},
@@ -33,47 +34,29 @@ things = {
     "temp": {"topic": "N/6064054fad59/battery/260/Dc/0/Temperature", "value": None},
     "dc_load": {"topic": "N/6064054fad59/system/0/Dc/System/Power", "value": None},
     "ac_load": {"topic": "N/6064054fad59/system/0/Ac/Consumption/L1/Power", "value": None},
-    "generator": {"topic": "N/6064054fad59/system/0/Ac/Genset/L1/Power", "value": None}
+
 
 }
 
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code " + str(rc))
-    # tracker.test()
-    # tracker.maintain()
+
     for item in things:
         client.subscribe(things[item]["topic"])
-    print("Finished subscribing")
+    client.subscribe("$SYS/broker/uptime")  # This makes sure we get some messages at least
 
-    print("Sending keep alive")
     os.system("mosquitto_pub -m '' -t 'R/6064054fad59/system/0/Serial' -h 192.168.10.172")
-    print("Sent keep alive")
-
-    # Subscribing in on_connect() means that if we lose the connection and
-    # reconnect then subscriptions will be renewed.
-    # client.subscribe("N/6064054fad59/solarcharger/258/Yield/Power")
-    # client.subscribe("N/6064054fad59/solarcharger/258/Dc/0/Current")
 
 
 def update_values():
-    ts = time.time()
-    timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    rows = list()
 
-    values = [(
-        things["solar_w"]["value"],
-        things["solar_a"]["value"],
-        things["solar_v"]["value"],
-        things["soc"]["value"],
-        (9.0 / 5.0 * things["temp"]["value"] + 32),
-        things["dc_load"]["value"],
-        things["ac_load"]["value"],
-        things["generator"]["value"],
-        timestamp
-    )]
+    for key in things.keys():
+        if things[key]["value"]:
+            rows.append([key, things[key]["value"]])
 
-    statement = f"INSERT INTO electric (solar_w, solar_a, solar_v, soc, temp, dc_load, ac_load, generator, time)" \
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    statement = "INSERT INTO electric (field, value) VALUES (%s, %s)"
 
     tunnel = open_tunnel(config['remote'], config['ssh_key'], config['remote_username'])
     tunnel.start()
@@ -83,7 +66,7 @@ def update_values():
                             config['database'],
                             port=tunnel.local_bind_port)
 
-    insert(db_conn, statement, values)
+    insert(db_conn, statement, rows)
 
     db_conn.close()
     tunnel.close()
@@ -97,8 +80,6 @@ def on_message(client, userdata, msg):
 
     if s.run_action("1_m"):
         update_values()
-        # Send keep alive
-        os.system("mosquitto_pub -m '' -t 'R/6064054fad59/system/0/Serial' -h venus")
     if s.run_action("30_m"):
         exit()
 
@@ -108,9 +89,7 @@ def main():
     client.on_connect = on_connect
     client.on_message = on_message
 
-    print("Pre connect")
     client.connect("192.168.10.172", 1883, 60)
-    print("post connect")
 
     # Blocking call that processes network traffic, dispatches callbacks and
     # handles reconnecting.
