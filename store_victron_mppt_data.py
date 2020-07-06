@@ -11,7 +11,7 @@ from helper.remote_insert import open_tunnel, db_connection, insert
 from pathlib import Path
 
 
-debug = logging.WARNING
+debug = logging.INFO
 
 logging.basicConfig(level=debug, format=f'%(asctime)s %(levelname)s %(name)s Line:%(lineno)s %(message)s')
 # format='%(asctime)s %levelname)s: %(message)s',
@@ -79,12 +79,16 @@ def on_message(client, userdata, msg):
             things[item].update(json.loads(msg.payload.decode()))
 
     if s.run_action("1_m"):
+        logging.info("Ran the 1 minute update")
         update_values()
     if s.run_action("30_m"):
+        logging.info("Its been 30 minutes, exiting")
         exit()
 
 
 def main():
+    print("\n\n")
+    logging.info("Starting new instance")
     client = mqtt.Client()
     client.on_connect = on_connect
     client.on_message = on_message
