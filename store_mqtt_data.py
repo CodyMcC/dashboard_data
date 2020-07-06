@@ -1,5 +1,6 @@
 import paho.mqtt.client as mqtt
 import json
+import argparse
 import time
 import datetime
 from helper.remote_insert import open_tunnel, db_connection, insert
@@ -19,9 +20,7 @@ s = Schedule()
 with open(Path("~/.dashboard_data").expanduser(), 'r') as fh:
     config = json.load(fh)
 
-debug = logging.WARNING
 
-logging.basicConfig(level=debug, format=f'%(asctime)s %(levelname)s %(name)s Line:%(lineno)s %(message)s')
 # format='%(asctime)s %levelname)s: %(message)s',
 #                         datefmt='%m/%d/%Y %I:%M:%S %p'
 logging.info(f"Logging level: {str(debug)}")
@@ -30,7 +29,32 @@ accessories = {"garage/battery_1/2111/TemperatureSensor": {"CurrentTemperature":
                "garage/battery_2/2222/TemperatureSensor": {"CurrentTemperature": "0"},
                "garage/battery_3/2333/TemperatureSensor": {"CurrentTemperature": "0"},
                "garage/ambient/2444/TemperatureSensor": {"CurrentTemperature": "0"}}
+def get_args():
+    global debug
 
+    # -------------------------------------------------------------------------------
+    # logging setup
+
+    logging.getLogger()
+    debug = logging.INFO
+    
+    logging.basicConfig(level=debug, format=f'%(asctime)s %(levelname)s %(name)s Line:%(lineno)s %(message)s')
+
+    logging.info(f"Logging level: {str(debug)}")
+
+    parser = argparse.ArgumentParser(description="Gathers MQTT data from the network and stores in remote db")
+
+    parser.add_argument('-d', '--debug', action='count', help='Increase debug level for each -d')
+
+    if arguments.debug:
+        # Turn up the logging level
+        debug -= arguments.debug * 10
+        if debug < 0:
+            debug = 0
+        logging.getLogger().setLevel(debug)
+        logging.warning(f'Updated log level to: {logging.getLevelName(debug)}({debug})')
+
+    return arguments
 
 def update_values():
     ts = time.time()
@@ -82,12 +106,18 @@ def on_message(client, userdata, msg):
             accessories[topic].update(json.loads(msg.payload.decode()))
 
     if s.run_action("1_m"):
+        logging.info("Runnning the 1 minute action")
         update_values()
     if s.run_action("30_m"):
+        logging.info("Its been 30 minutes, exiting")
         exit()
 
 
 def main():
+
+    print("\n\n")
+    logging.info("Starting new instence")
+    arguments = get_args()
 
     client = mqtt.Client()
     client.on_connect = on_connect
