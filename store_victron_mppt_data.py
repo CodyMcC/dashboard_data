@@ -78,16 +78,18 @@ def on_message(client, userdata, msg):
         if things[item]['topic'] == msg.topic:
             things[item].update(json.loads(msg.payload.decode()))
 
+    if s.run_action("30_m"):
+        logging.info("Its been 30 minutes, exiting")
+        sys.exit()
     if s.run_action("1_m"):
         logging.info("Ran the 1 minute update")
         update_values()
-    if s.run_action("30_m"):
-        logging.info("Its been 30 minutes, exiting")
-        exit()
 
 
 def main():
     print("\n\n")
+    logging.info("")
+    logging.info("")
     logging.info("Starting new instance")
     client = mqtt.Client()
     client.on_connect = on_connect

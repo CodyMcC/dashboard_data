@@ -5,6 +5,7 @@ import time
 import datetime
 from helper.remote_insert import open_tunnel, db_connection, insert
 
+import sys
 from pathlib import Path
 
 from simple_schedule import Schedule
@@ -21,9 +22,6 @@ with open(Path("~/.dashboard_data").expanduser(), 'r') as fh:
     config = json.load(fh)
 
 
-# format='%(asctime)s %levelname)s: %(message)s',
-#                         datefmt='%m/%d/%Y %I:%M:%S %p'
-logging.info(f"Logging level: {str(debug)}")
 
 accessories = {"garage/battery_1/2111/TemperatureSensor": {"CurrentTemperature": "0"},
                "garage/battery_2/2222/TemperatureSensor": {"CurrentTemperature": "0"},
@@ -39,12 +37,15 @@ def get_args():
     debug = logging.INFO
     
     logging.basicConfig(level=debug, format=f'%(asctime)s %(levelname)s %(name)s Line:%(lineno)s %(message)s')
+    logging.getLogger().setLevel(debug)
 
     logging.info(f"Logging level: {str(debug)}")
 
     parser = argparse.ArgumentParser(description="Gathers MQTT data from the network and stores in remote db")
 
     parser.add_argument('-d', '--debug', action='count', help='Increase debug level for each -d')
+
+    arguments = parser.parse_args()
 
     if arguments.debug:
         # Turn up the logging level
@@ -102,22 +103,22 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     for topic in accessories.keys():
         if topic == msg.topic:
-            print(msg.topic)
+            logging.debug(msg.topic)
             accessories[topic].update(json.loads(msg.payload.decode()))
 
+    if s.run_action("30_m"):
+        logging.info("Its been 30 minutes, exiting")
+        sys.exit()
     if s.run_action("1_m"):
         logging.info("Runnning the 1 minute action")
         update_values()
-    if s.run_action("30_m"):
-        logging.info("Its been 30 minutes, exiting")
-        exit()
 
 
 def main():
 
+    arguments = get_args()
     print("\n\n")
     logging.info("Starting new instence")
-    arguments = get_args()
 
     client = mqtt.Client()
     client.on_connect = on_connect
