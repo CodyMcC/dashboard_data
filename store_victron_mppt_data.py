@@ -78,7 +78,7 @@ def on_message(client, userdata, msg):
         if things[item]['topic'] == msg.topic:
             things[item].update(json.loads(msg.payload.decode()))
 
-    if s.run_action("30_m"):
+    if s.run_action("29_m"):
         logging.info("Its been 30 minutes, exiting")
         sys.exit()
     if s.run_action("1_m"):
